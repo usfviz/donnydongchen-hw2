@@ -33,8 +33,11 @@ colnames(df_fr) <- c("Country.Name","Country.Code", c(1960:2014))
 colnames(df_p) <- c("Country.Name","Country.Code", c(1960:2014))
 
 df_meta_le <- merge(df_meta, df_le, by = "Country.Code")
+df_meta_le <- df_meta_le[!df_meta_le$Region=="",]
 df_meta_fr <- merge(df_meta, df_fr, by = "Country.Code")
+df_meta_fr <- df_meta_fr[!df_meta_fr$Region=="",]
 df_meta_p <- merge(df_meta, df_p, by = "Country.Code")
+df_meta_p <- df_meta_p[!df_meta_p$Region=="",]
 
 region <- df_meta_p[,"Region"]
 assign("region", region, envir = .GlobalEnv)
@@ -48,12 +51,11 @@ unique_region <- unique(c(as.character(df_meta_p$Region)))[-5]
 ui <- fluidPage(
   headerPanel('Life Expectancy and Fertility Rate'),
   fluidRow(
-    column(12, mainPanel(uiOutput("ggvis_ui"), ggvisOutput("ggvis")),
-    column(10, sliderInput("year", "Select Year", 1960, 2014, 1, animate = TRUE))),
-    column(5, checkboxGroupInput("region", "Select Regions", choices = unique_region))
+    mainPanel(uiOutput("ggvis_ui"), ggvisOutput("ggvis"))),
+  fluidRow(column(12,
+    checkboxGroupInput("region", "Select Regions", choices = unique_region, inline = TRUE)), offset=2),
+  fluidRow(column(12,sliderInput("year", "Select Year", 1960, 2014, 1, animate = TRUE)), offset=2)
 )
-)
-
 # Shiny Server
 server <- function(input, output) {
   
@@ -62,36 +64,48 @@ server <- function(input, output) {
     paste0 ( x$Country.Name )
   }
     
-  region_select <- reactive(is.null(input$region))
+  # region_select <- reactive(is.null(input$region))
     
-  data <- reactive({
+  viz <- reactive({
     if (is.null(input$region)){
     Fertility.Rate <- df_meta_fr[, as.character(input$year)]
     Life.Expectancy <- df_meta_le[, as.character(input$year)]
     Population <- df_meta_p[, as.character(input$year)]
     data <- data.frame(cbind(Fertility.Rate, Life.Expectancy, Population))
     data$Country.Name <- df_meta_fr$Country.Name
-    data}
-    else{
-    # input <- data.frame(region="North America", year=2014)  
-      Fertility.Rate <- df_meta_fr[df_meta_fr[,"Region"]%in%input$region, as.character(input$year)]
-      Life.Expectancy <- df_meta_le[df_meta_le[,"Region"]%in%input$region, as.character(input$year)]
-      Population <- df_meta_p[df_meta_p[,"Region"]%in%input$region, as.character(input$year)]
-    data <- data.frame(cbind(Fertility.Rate, Life.Expectancy, Population))
-    data$Country.Name <- df_meta_fr[df_meta_fr[,"Region"]%in%input$region,]$Country.Name
-    data
-    }}
-    )
-    
+    data$region_select <- 0
+    data[df_meta_fr[,"Region"]%in%input$region, "region_select"] <- 1
     data %>% 
-      ggvis(~Life.Expectancy, ~Fertility.Rate, size = ~Population, 
-            # fill = ~region, 
+      ggvis(~Life.Expectancy, ~Fertility.Rate, size = ~Population, opacity := 1,
+            fill = ~region,
             key := ~Country.Name) %>%
       layer_points() %>%
-      add_tooltip(show_country, "hover") %>%
-      bind_shiny("ggvis", "ggvis_ui")
+      hide_legend("size") %>%
+      add_tooltip(show_country, "hover")
+    
+    }
+    else{
+    # input <- data.frame(region="North America", year=2014)
+      Fertility.Rate <- df_meta_fr[, as.character(input$year)]
+      Life.Expectancy <- df_meta_le[, as.character(input$year)]
+      Population <- df_meta_p[, as.character(input$year)]
+      data <- data.frame(cbind(Fertility.Rate, Life.Expectancy, Population))
+      data$Country.Name <- df_meta_fr$Country.Name
+      data$region_select <- 0.2
+      data[df_meta_fr[,"Region"]%in%input$region, "region_select"] <- 1
+    data %>% 
+      ggvis(~Life.Expectancy, ~Fertility.Rate, size = ~Population, opacity :=~region_select,
+            fill = ~region,
+            key := ~Country.Name) %>%
+      layer_points() %>%
+      hide_legend("size") %>%
+      add_tooltip(show_country, "hover")
+    }}
+    )
+
+      viz%>%bind_shiny("ggvis", "ggvis_ui")
 }
 
 shinyApp(ui = ui, server = server)
 
-# shiny::runGitHub(repo = "donnydongchen/-viz", username = "donnydongchen", subdir = "viz_hw2_donny_chen.R")
+# shiny::runGitHub(repo = "usfviz/donnydongchen-hw2", username = "donnydongchen", subdir = "viz_hw2_donny_chen.R")
