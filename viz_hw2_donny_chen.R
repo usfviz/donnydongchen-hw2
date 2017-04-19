@@ -21,7 +21,7 @@ if ("dplyr" %in% rownames(installed.packages())==F) {
 library(dplyr)
 
 # set working directory to source file location
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+# setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 ########################################################################
 # Data Preprocessing
