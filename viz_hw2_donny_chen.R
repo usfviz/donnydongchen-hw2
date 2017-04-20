@@ -109,7 +109,7 @@ server <- function(input, output) {
               fill = ~region,
               key := ~Country.Name) %>%
         layer_points() %>%
-        hide_legend("size") %>%
+        ggvis::hide_legend("size") %>%
         scale_numeric("x", domain = c(20, 85), clamp = TRUE) %>%
         scale_numeric("y", domain = c(0, 9), clamp = TRUE) %>%
         add_tooltip(show_country, "hover")
@@ -121,4 +121,4 @@ server <- function(input, output) {
 
 shinyApp(ui = ui, server = server)
 
-# shiny::runGitHub(repo = "usfviz/donnydongchen-hw2", username = "usfviz", subdir = "viz_hw2_donny_chen.R")
+# shiny::runGitHub(repo = "donnydongchen-hw2", username = "usfviz", subdir = "viz_hw2_donny_chen.R")
